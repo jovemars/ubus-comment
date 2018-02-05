@@ -18,31 +18,31 @@
 
 char *count_to_number(uint32_t num)
 {
-	uint32_t ptr = 0, size = 0;
-	uint32_t written = 0, i;
-	int new_line_every_n_numbers = 30;
-	char *s;
+    uint32_t ptr = 0, size = 0;
+    uint32_t written = 0, i;
+    int new_line_every_n_numbers = 30;
+    char *s;
 
-	for (i=0; i < num; ++i) {
-		size += snprintf(NULL, 0, "%u ", i);
-		if (i > 0 && i % new_line_every_n_numbers == 0)
-			size++;
-	}
-	size++; /* one for null char */
+    for (i=0; i < num; ++i) {
+        size += snprintf(NULL, 0, "%u ", i);
+        if (i > 0 && i % new_line_every_n_numbers == 0)
+            size++;
+    }
+    size++; /* one for null char */
 
-	s = calloc(size, sizeof(char));
-	if (!s)
-		goto out;
+    s = calloc(size, sizeof(char));
+    if (!s)
+        goto out;
 
-	for (i=0; i < num; ++i) {
-		written = sprintf(&s[ptr], "%u ", i);
-		ptr  += written;
-		if (i > 0 && i % new_line_every_n_numbers == 0) {
-			sprintf(&s[ptr], "\n");
-			ptr++;
-		}
-	}
+    for (i=0; i < num; ++i) {
+        written = sprintf(&s[ptr], "%u ", i);
+        ptr  += written;
+        if (i > 0 && i % new_line_every_n_numbers == 0) {
+            sprintf(&s[ptr], "\n");
+            ptr++;
+        }
+    }
 
 out:
-	return s;
+    return s;
 }

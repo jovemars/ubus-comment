@@ -32,66 +32,66 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define	prefetch(x)
+#define    prefetch(x)
 
 #ifndef container_of
 // a member type pointer __mptr pointed to an actual address
 // (actual member addr - actual type struct addr) == offsetof(type, member)
 // return the actual address of a variable containing of ptr
-#define container_of(ptr, type, member)					\
-	({								\
-		const typeof(((type *) NULL)->member) *__mptr = (ptr);	\
-		(type *) ((char *) __mptr - offsetof(type, member));	\
-	})
+#define container_of(ptr, type, member)                    \
+    ({                                \
+        const typeof(((type *) NULL)->member) *__mptr = (ptr);    \
+        (type *) ((char *) __mptr - offsetof(type, member));    \
+    })
 #endif
 
 struct list_head {
-	struct list_head *next;
-	struct list_head *prev;
+    struct list_head *next;
+    struct list_head *prev;
 };
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 #undef LIST_HEAD
-#define LIST_HEAD(name)	struct list_head name = LIST_HEAD_INIT(name)
+#define LIST_HEAD(name)    struct list_head name = LIST_HEAD_INIT(name)
 
 static inline void
 INIT_LIST_HEAD(struct list_head *list)
 {
-	list->next = list->prev = list;
+    list->next = list->prev = list;
 }
 
 static inline bool
 list_empty(const struct list_head *head)
 {
-	return (head->next == head);
+    return (head->next == head);
 }
 
 static inline bool
 list_is_first(const struct list_head *list,
-	      const struct list_head *head)
+          const struct list_head *head)
 {
-	return list->prev == head;
+    return list->prev == head;
 }
 
 static inline bool
 list_is_last(const struct list_head *list,
-	     const struct list_head *head)
+         const struct list_head *head)
 {
-	return list->next == head;
+    return list->next == head;
 }
 
 static inline void
 _list_del(struct list_head *entry)
 {
-	entry->next->prev = entry->prev;
-	entry->prev->next = entry->next;
+    entry->next->prev = entry->prev;
+    entry->prev->next = entry->next;
 }
 
 static inline void
 list_del(struct list_head *entry)
 {
-	_list_del(entry);
-	entry->next = entry->prev = NULL;
+    _list_del(entry);
+    entry->next = entry->prev = NULL;
 }
 
 static inline void
@@ -106,7 +106,7 @@ _list_add(struct list_head *_new, struct list_head *prev,
     // **NOTE**
     // 1. first->prev == last
     // 2. last->next  == first
-	next->prev = _new;
+    next->prev = _new;
     // 
     //  ______   next   ______                  ______   prev  ______   next
     // | prev |------> | next |                | _new |<------| head |------|
@@ -116,7 +116,7 @@ _list_add(struct list_head *_new, struct list_head *prev,
     //         | _new |<----
     //         |______|
     //
-	_new->next = next;
+    _new->next = next;
     //
     //  ______   next   ______                  ______   prev  ______   next
     // | prev |------> | next |                | _new |<------| head |------|
@@ -127,7 +127,7 @@ _list_add(struct list_head *_new, struct list_head *prev,
     //         | _new |<--- |
     //         |______|------
     //
-	_new->prev = prev;
+    _new->prev = prev;
     //
     //  ______   next   ______                  ______   prev  ______   next
     // | prev |------> | next |                | _new |<------| head |------|
@@ -138,7 +138,7 @@ _list_add(struct list_head *_new, struct list_head *prev,
     //    |----| _new |<--- |                               prev
     //         |______|------
     //
-	prev->next = _new;
+    prev->next = _new;
     //
     //   ______          ______
     //  | prev |        | next |                           next
@@ -154,106 +154,106 @@ _list_add(struct list_head *_new, struct list_head *prev,
 static inline void
 list_del_init(struct list_head *entry)
 {
-	_list_del(entry);
-	INIT_LIST_HEAD(entry);
+    _list_del(entry);
+    INIT_LIST_HEAD(entry);
 }
 
-#define	list_entry(ptr, type, field)	container_of(ptr, type, field)
-#define	list_first_entry(ptr, type, field)	list_entry((ptr)->next, type, field)
-#define	list_last_entry(ptr, type, field)	list_entry((ptr)->prev, type, field)
+#define    list_entry(ptr, type, field)    container_of(ptr, type, field)
+#define    list_first_entry(ptr, type, field)    list_entry((ptr)->next, type, field)
+#define    list_last_entry(ptr, type, field)    list_entry((ptr)->prev, type, field)
 
-#define	list_for_each(p, head)						\
-	for (p = (head)->next; p != (head); p = p->next)
+#define    list_for_each(p, head)                        \
+    for (p = (head)->next; p != (head); p = p->next)
 
-#define	list_for_each_safe(p, n, head)					\
-	for (p = (head)->next, n = p->next; p != (head); p = n, n = p->next)
+#define    list_for_each_safe(p, n, head)                    \
+    for (p = (head)->next, n = p->next; p != (head); p = n, n = p->next)
 
-#define list_for_each_entry(p, h, field)				\
-	for (p = list_first_entry(h, typeof(*p), field); &p->field != (h); \
-	    p = list_entry(p->field.next, typeof(*p), field))
+#define list_for_each_entry(p, h, field)                \
+    for (p = list_first_entry(h, typeof(*p), field); &p->field != (h); \
+        p = list_entry(p->field.next, typeof(*p), field))
 
-#define list_for_each_entry_safe(p, n, h, field)			\
-	for (p = list_first_entry(h, typeof(*p), field),		\
-	    n = list_entry(p->field.next, typeof(*p), field); &p->field != (h);\
-	    p = n, n = list_entry(n->field.next, typeof(*n), field))
+#define list_for_each_entry_safe(p, n, h, field)            \
+    for (p = list_first_entry(h, typeof(*p), field),        \
+        n = list_entry(p->field.next, typeof(*p), field); &p->field != (h);\
+        p = n, n = list_entry(n->field.next, typeof(*n), field))
 
-#define	list_for_each_entry_reverse(p, h, field)			\
-	for (p = list_last_entry(h, typeof(*p), field); &p->field != (h); \
-	    p = list_entry(p->field.prev, typeof(*p), field))
+#define    list_for_each_entry_reverse(p, h, field)            \
+    for (p = list_last_entry(h, typeof(*p), field); &p->field != (h); \
+        p = list_entry(p->field.prev, typeof(*p), field))
 
-#define	list_for_each_prev(p, h) for (p = (h)->prev; p != (h); p = p->prev)
-#define	list_for_each_prev_safe(p, n, h) for (p = (h)->prev, n = p->prev; p != (h); p = n, n = p->prev)
+#define    list_for_each_prev(p, h) for (p = (h)->prev; p != (h); p = p->prev)
+#define    list_for_each_prev_safe(p, n, h) for (p = (h)->prev, n = p->prev; p != (h); p = n, n = p->prev)
 
 static inline void
 list_add(struct list_head *_new, struct list_head *head)
 {
     // insert _new behind head
-	_list_add(_new, head, head->next);
+    _list_add(_new, head, head->next);
 }
 
 static inline void
 list_add_tail(struct list_head *_new, struct list_head *head)
 {
     // insert _new before head
-	_list_add(_new, head->prev, head);
+    _list_add(_new, head->prev, head);
 }
 
 static inline void
 list_move(struct list_head *list, struct list_head *head)
 {
-	_list_del(list);
-	list_add(list, head);
+    _list_del(list);
+    list_add(list, head);
 }
 
 static inline void
 list_move_tail(struct list_head *entry, struct list_head *head)
 {
-	_list_del(entry);
-	list_add_tail(entry, head);
+    _list_del(entry);
+    list_add_tail(entry, head);
 }
 
 static inline void
 _list_splice(const struct list_head *list, struct list_head *prev,
     struct list_head *next)
 {
-	struct list_head *first;
-	struct list_head *last;
+    struct list_head *first;
+    struct list_head *last;
 
-	if (list_empty(list))
-		return;
+    if (list_empty(list))
+        return;
 
-	first = list->next;
-	last = list->prev;
-	first->prev = prev;
-	prev->next = first;
-	last->next = next;
-	next->prev = last;
+    first = list->next;
+    last = list->prev;
+    first->prev = prev;
+    prev->next = first;
+    last->next = next;
+    next->prev = last;
 }
 
 static inline void
 list_splice(const struct list_head *list, struct list_head *head)
 {
-	_list_splice(list, head, head->next);
+    _list_splice(list, head, head->next);
 }
 
 static inline void
 list_splice_tail(struct list_head *list, struct list_head *head)
 {
-	_list_splice(list, head->prev, head);
+    _list_splice(list, head->prev, head);
 }
 
 static inline void
 list_splice_init(struct list_head *list, struct list_head *head)
 {
-	_list_splice(list, head, head->next);
-	INIT_LIST_HEAD(list);
+    _list_splice(list, head, head->next);
+    INIT_LIST_HEAD(list);
 }
 
 static inline void
 list_splice_tail_init(struct list_head *list, struct list_head *head)
 {
-	_list_splice(list, head->prev, head);
-	INIT_LIST_HEAD(list);
+    _list_splice(list, head->prev, head);
+    INIT_LIST_HEAD(list);
 }
 
 #endif /* _LINUX_LIST_H_ */

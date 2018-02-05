@@ -46,20 +46,20 @@ void *__calloc_a(size_t len, ...);
 
 #ifdef __OPTIMIZE__
 extern int __BUILD_BUG_ON_CONDITION_FAILED;
-#define BUILD_BUG_ON(condition)					\
-	do {							\
-		__BUILD_BUG_ON(condition);			\
-		if (condition)					\
-			__BUILD_BUG_ON_CONDITION_FAILED = 1;	\
-	} while(0)
+#define BUILD_BUG_ON(condition)                    \
+    do {                            \
+        __BUILD_BUG_ON(condition);            \
+        if (condition)                    \
+            __BUILD_BUG_ON_CONDITION_FAILED = 1;    \
+    } while(0)
 #else
 #define BUILD_BUG_ON __BUILD_BUG_ON
 #endif
 
 #ifdef __APPLE__
 
-#define CLOCK_REALTIME	0
-#define CLOCK_MONOTONIC	1
+#define CLOCK_REALTIME    0
+#define CLOCK_MONOTONIC    1
 
 void clock_gettime(int type, struct timespec *tv);
 
@@ -102,7 +102,7 @@ void clock_gettime(int type, struct timespec *tv);
 
 static inline uint16_t __u_bswap16(uint16_t val)
 {
-	return ((val >> 8) & 0xffu) | ((val & 0xffu) << 8);
+    return ((val >> 8) & 0xffu) | ((val & 0xffu) << 8);
 }
 
 #if _GNUC_MIN_VER(4, 2)
@@ -177,12 +177,12 @@ static inline uint16_t __u_bswap16(uint16_t val)
 
 static inline void bitfield_set(unsigned long *bits, int bit)
 {
-	bits[bit / BITS_PER_LONG] |= (1UL << (bit % BITS_PER_LONG));
+    bits[bit / BITS_PER_LONG] |= (1UL << (bit % BITS_PER_LONG));
 }
 
 static inline bool bitfield_test(unsigned long *bits, int bit)
 {
-	return !!(bits[bit / BITS_PER_LONG] & (1UL << (bit % BITS_PER_LONG)));
+    return !!(bits[bit / BITS_PER_LONG] & (1UL << (bit % BITS_PER_LONG)));
 }
 
 #endif

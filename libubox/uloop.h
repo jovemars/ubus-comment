@@ -40,47 +40,47 @@ typedef void (*uloop_fd_handler)(struct uloop_fd *u, unsigned int events);
 typedef void (*uloop_timeout_handler)(struct uloop_timeout *t);
 typedef void (*uloop_process_handler)(struct uloop_process *c, int ret);
 
-#define ULOOP_READ		    (1 << 0)    // EPOLLIN
-#define ULOOP_WRITE		    (1 << 1)    // EPOLLOUT
-#define ULOOP_EDGE_TRIGGER	(1 << 2)    // EPOLLET
-#define ULOOP_BLOCKING		(1 << 3)    // block mode
+#define ULOOP_READ            (1 << 0)    // EPOLLIN
+#define ULOOP_WRITE            (1 << 1)    // EPOLLOUT
+#define ULOOP_EDGE_TRIGGER    (1 << 2)    // EPOLLET
+#define ULOOP_BLOCKING        (1 << 3)    // block mode
 
-#define ULOOP_EVENT_MASK	(ULOOP_READ | ULOOP_WRITE)
+#define ULOOP_EVENT_MASK    (ULOOP_READ | ULOOP_WRITE)
 
 /* internal flags */
-#define ULOOP_EVENT_BUFFERED	(1 << 4) // stacked in buffer
+#define ULOOP_EVENT_BUFFERED    (1 << 4) // stacked in buffer
 #ifdef USE_KQUEUE
-#define ULOOP_EDGE_DEFER	(1 << 5)    // 
+#define ULOOP_EDGE_DEFER    (1 << 5)    // 
 #endif
 
-#define ULOOP_ERROR_CB		(1 << 6)    // call handler when epoll_wait() report error
+#define ULOOP_ERROR_CB        (1 << 6)    // call handler when epoll_wait() report error
 
 struct uloop_fd
 {
-	uloop_fd_handler cb; // callback when socket status changed
-	int fd;              // binding socket for server, or remote socket for client
-	bool eof;            // if read() return 0
-	bool error;          // if epoll_wait() report error
-	bool registered;     // if fd registered to epoll instance
-	uint8_t flags;       // carry the private macos defined above(ULOOP_READ, ULOOP_WRITE...)
+    uloop_fd_handler cb; // callback when socket status changed
+    int fd;              // binding socket for server, or remote socket for client
+    bool eof;            // if read() return 0
+    bool error;          // if epoll_wait() report error
+    bool registered;     // if fd registered to epoll instance
+    uint8_t flags;       // carry the private macos defined above(ULOOP_READ, ULOOP_WRITE...)
 };
 
 struct uloop_timeout
 {
-	struct list_head list;
-	bool pending;
+    struct list_head list;
+    bool pending;
 
-	uloop_timeout_handler cb;
-	struct timeval time;
+    uloop_timeout_handler cb;
+    struct timeval time;
 };
 
 struct uloop_process
 {
-	struct list_head list;
-	bool pending;
+    struct list_head list;
+    bool pending;
 
-	uloop_process_handler cb;
-	pid_t pid;
+    uloop_process_handler cb;
+    pid_t pid;
 };
 
 extern bool uloop_cancelled;
@@ -99,7 +99,7 @@ int uloop_process_delete(struct uloop_process *p);
 
 static inline void uloop_end(void)
 {
-	uloop_cancelled = true;
+    uloop_cancelled = true;
 }
 
 int uloop_init(void);

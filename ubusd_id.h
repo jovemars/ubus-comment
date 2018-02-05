@@ -18,8 +18,8 @@
 #include <stdint.h>
 
 struct ubus_id {
-	struct avl_node avl;
-	uint32_t id;
+    struct avl_node avl;
+    uint32_t id;
 };
 
 void ubus_init_id_tree(struct avl_tree *tree);
@@ -28,18 +28,18 @@ bool ubus_alloc_id(struct avl_tree *tree, struct ubus_id *id, uint32_t val);
 
 static inline void ubus_free_id(struct avl_tree *tree, struct ubus_id *id)
 {
-	avl_delete(tree, &id->avl);
+    avl_delete(tree, &id->avl);
 }
 
 static inline struct ubus_id *ubus_find_id(struct avl_tree *tree, uint32_t id)
 {
-	struct avl_node *avl;
+    struct avl_node *avl;
 
-	avl = avl_find(tree, &id);
-	if (!avl)
-		return NULL;
+    avl = avl_find(tree, &id);
+    if (!avl)
+        return NULL;
 
-	return container_of(avl, struct ubus_id, avl);
+    return container_of(avl, struct ubus_id, avl);
 }
 
 #endif

@@ -28,18 +28,18 @@
 
 #include "utils.h"
 
-#define BLOB_COOKIE		0x01234567
+#define BLOB_COOKIE        0x01234567
 
 enum {
-	BLOB_ATTR_UNSPEC,
-	BLOB_ATTR_NESTED,
-	BLOB_ATTR_BINARY,
-	BLOB_ATTR_STRING,
-	BLOB_ATTR_INT8,
-	BLOB_ATTR_INT16,
-	BLOB_ATTR_INT32,
-	BLOB_ATTR_INT64,
-	BLOB_ATTR_LAST
+    BLOB_ATTR_UNSPEC,
+    BLOB_ATTR_NESTED,
+    BLOB_ATTR_BINARY,
+    BLOB_ATTR_STRING,
+    BLOB_ATTR_INT8,
+    BLOB_ATTR_INT16,
+    BLOB_ATTR_INT32,
+    BLOB_ATTR_INT64,
+    BLOB_ATTR_LAST
 };
 
 #define BLOB_ATTR_ID_MASK  0x7f000000
@@ -49,22 +49,22 @@ enum {
 #define BLOB_ATTR_EXTENDED 0x80000000
 
 struct blob_attr {
-	uint32_t id_len;
-	char data[];
+    uint32_t id_len;
+    char data[];
 } __packed;
 
 struct blob_attr_info {
-	unsigned int type;
-	unsigned int minlen;
-	unsigned int maxlen;
-	bool (*validate)(const struct blob_attr_info *, struct blob_attr *);
+    unsigned int type;
+    unsigned int minlen;
+    unsigned int maxlen;
+    bool (*validate)(const struct blob_attr_info *, struct blob_attr *);
 };
 
 struct blob_buf {
-	struct blob_attr *head;
-	bool (*grow)(struct blob_buf *buf, int minlen);
-	int buflen;
-	void *buf;
+    struct blob_attr *head;
+    bool (*grow)(struct blob_buf *buf, int minlen);
+    int buflen;
+    void *buf;
 };
 
 /*
@@ -73,7 +73,7 @@ struct blob_buf {
 static inline void *
 blob_data(const struct blob_attr *attr)
 {
-	return (void *) attr->data;
+    return (void *) attr->data;
 }
 
 /*
@@ -82,14 +82,14 @@ blob_data(const struct blob_attr *attr)
 static inline unsigned int
 blob_id(const struct blob_attr *attr)
 {
-	int id = (be32_to_cpu(attr->id_len) & BLOB_ATTR_ID_MASK) >> BLOB_ATTR_ID_SHIFT;
-	return id;
+    int id = (be32_to_cpu(attr->id_len) & BLOB_ATTR_ID_MASK) >> BLOB_ATTR_ID_SHIFT;
+    return id;
 }
 
 static inline bool
 blob_is_extended(const struct blob_attr *attr)
 {
-	return !!(attr->id_len & cpu_to_be32(BLOB_ATTR_EXTENDED));
+    return !!(attr->id_len & cpu_to_be32(BLOB_ATTR_EXTENDED));
 }
 
 /*
@@ -98,7 +98,7 @@ blob_is_extended(const struct blob_attr *attr)
 static inline unsigned int
 blob_len(const struct blob_attr *attr)
 {
-	return (be32_to_cpu(attr->id_len) & BLOB_ATTR_LEN_MASK) - sizeof(struct blob_attr);
+    return (be32_to_cpu(attr->id_len) & BLOB_ATTR_LEN_MASK) - sizeof(struct blob_attr);
 }
 
 /*
@@ -107,7 +107,7 @@ blob_len(const struct blob_attr *attr)
 static inline unsigned int
 blob_raw_len(const struct blob_attr *attr)
 {
-	return blob_len(attr) + sizeof(struct blob_attr);
+    return blob_len(attr) + sizeof(struct blob_attr);
 }
 
 /*
@@ -116,74 +116,74 @@ blob_raw_len(const struct blob_attr *attr)
 static inline unsigned int
 blob_pad_len(const struct blob_attr *attr)
 {
-	int len = blob_raw_len(attr);
-	len = (len + BLOB_ATTR_ALIGN - 1) & ~(BLOB_ATTR_ALIGN - 1);
-	return len;
+    int len = blob_raw_len(attr);
+    len = (len + BLOB_ATTR_ALIGN - 1) & ~(BLOB_ATTR_ALIGN - 1);
+    return len;
 }
 
 static inline uint8_t
 blob_get_u8(const struct blob_attr *attr)
 {
-	return *((uint8_t *) attr->data);
+    return *((uint8_t *) attr->data);
 }
 
 static inline uint16_t
 blob_get_u16(const struct blob_attr *attr)
 {
-	uint16_t *tmp = (uint16_t*)attr->data;
-	return be16_to_cpu(*tmp);
+    uint16_t *tmp = (uint16_t*)attr->data;
+    return be16_to_cpu(*tmp);
 }
 
 static inline uint32_t
 blob_get_u32(const struct blob_attr *attr)
 {
-	uint32_t *tmp = (uint32_t*)attr->data;
-	return be32_to_cpu(*tmp);
+    uint32_t *tmp = (uint32_t*)attr->data;
+    return be32_to_cpu(*tmp);
 }
 
 static inline uint64_t
 blob_get_u64(const struct blob_attr *attr)
 {
-	uint32_t *ptr = blob_data(attr);
-	uint64_t tmp = ((uint64_t) be32_to_cpu(ptr[0])) << 32;
-	tmp |= be32_to_cpu(ptr[1]);
-	return tmp;
+    uint32_t *ptr = blob_data(attr);
+    uint64_t tmp = ((uint64_t) be32_to_cpu(ptr[0])) << 32;
+    tmp |= be32_to_cpu(ptr[1]);
+    return tmp;
 }
 
 static inline int8_t
 blob_get_int8(const struct blob_attr *attr)
 {
-	return blob_get_u8(attr);
+    return blob_get_u8(attr);
 }
 
 static inline int16_t
 blob_get_int16(const struct blob_attr *attr)
 {
-	return blob_get_u16(attr);
+    return blob_get_u16(attr);
 }
 
 static inline int32_t
 blob_get_int32(const struct blob_attr *attr)
 {
-	return blob_get_u32(attr);
+    return blob_get_u32(attr);
 }
 
 static inline int64_t
 blob_get_int64(const struct blob_attr *attr)
 {
-	return blob_get_u64(attr);
+    return blob_get_u64(attr);
 }
 
 static inline const char *
 blob_get_string(const struct blob_attr *attr)
 {
-	return attr->data;
+    return attr->data;
 }
 
 static inline struct blob_attr *
 blob_next(const struct blob_attr *attr)
 {
-	return (struct blob_attr *) ((char *) attr + blob_pad_len(attr));
+    return (struct blob_attr *) ((char *) attr + blob_pad_len(attr));
 }
 
 extern void blob_fill_pad(struct blob_attr *attr);
@@ -204,54 +204,54 @@ extern struct blob_attr *blob_put_raw(struct blob_buf *buf, const void *ptr, int
 static inline struct blob_attr *
 blob_put_string(struct blob_buf *buf, int id, const char *str)
 {
-	return blob_put(buf, id, str, strlen(str) + 1);
+    return blob_put(buf, id, str, strlen(str) + 1);
 }
 
 static inline struct blob_attr *
 blob_put_u8(struct blob_buf *buf, int id, uint8_t val)
 {
-	return blob_put(buf, id, &val, sizeof(val));
+    return blob_put(buf, id, &val, sizeof(val));
 }
 
 static inline struct blob_attr *
 blob_put_u16(struct blob_buf *buf, int id, uint16_t val)
 {
-	val = cpu_to_be16(val);
-	return blob_put(buf, id, &val, sizeof(val));
+    val = cpu_to_be16(val);
+    return blob_put(buf, id, &val, sizeof(val));
 }
 
 static inline struct blob_attr *
 blob_put_u32(struct blob_buf *buf, int id, uint32_t val)
 {
-	val = cpu_to_be32(val);
-	return blob_put(buf, id, &val, sizeof(val));
+    val = cpu_to_be32(val);
+    return blob_put(buf, id, &val, sizeof(val));
 }
 
 static inline struct blob_attr *
 blob_put_u64(struct blob_buf *buf, int id, uint64_t val)
 {
-	val = cpu_to_be64(val);
-	return blob_put(buf, id, &val, sizeof(val));
+    val = cpu_to_be64(val);
+    return blob_put(buf, id, &val, sizeof(val));
 }
 
-#define blob_put_int8	blob_put_u8
-#define blob_put_int16	blob_put_u16
-#define blob_put_int32	blob_put_u32
-#define blob_put_int64	blob_put_u64
+#define blob_put_int8    blob_put_u8
+#define blob_put_int16    blob_put_u16
+#define blob_put_int32    blob_put_u32
+#define blob_put_int64    blob_put_u64
 
 #define __blob_for_each_attr(pos, attr, rem) \
-	for (pos = (void *) attr; \
-	     rem > 0 && (blob_pad_len(pos) <= rem) && \
-	     (blob_pad_len(pos) >= sizeof(struct blob_attr)); \
-	     rem -= blob_pad_len(pos), pos = blob_next(pos))
+    for (pos = (void *) attr; \
+         rem > 0 && (blob_pad_len(pos) <= rem) && \
+         (blob_pad_len(pos) >= sizeof(struct blob_attr)); \
+         rem -= blob_pad_len(pos), pos = blob_next(pos))
 
 
 #define blob_for_each_attr(pos, attr, rem) \
-	for (rem = attr ? blob_len(attr) : 0, \
-	     pos = attr ? blob_data(attr) : 0; \
-	     rem > 0 && (blob_pad_len(pos) <= rem) && \
-	     (blob_pad_len(pos) >= sizeof(struct blob_attr)); \
-	     rem -= blob_pad_len(pos), pos = blob_next(pos))
+    for (rem = attr ? blob_len(attr) : 0, \
+         pos = attr ? blob_data(attr) : 0; \
+         rem > 0 && (blob_pad_len(pos) <= rem) && \
+         (blob_pad_len(pos) >= sizeof(struct blob_attr)); \
+         rem -= blob_pad_len(pos), pos = blob_next(pos))
 
 
 #endif

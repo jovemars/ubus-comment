@@ -24,22 +24,22 @@ static int random_fd = -1;
 
 static int ubus_cmp_id(const void *k1, const void *k2, void *ptr)
 {
-	const uint32_t *id1 = k1, *id2 = k2;
+    const uint32_t *id1 = k1, *id2 = k2;
 
-	if (*id1 < *id2)
-		return -1;
-	else
-		return *id1 > *id2;
+    if (*id1 < *id2)
+        return -1;
+    else
+        return *id1 > *id2;
 }
 
 void ubus_init_string_tree(struct avl_tree *tree, bool dup)
 {
-	avl_init(tree, avl_strcmp, dup, NULL);
+    avl_init(tree, avl_strcmp, dup, NULL);
 }
 
 void ubus_init_id_tree(struct avl_tree *tree)
 {
-	if (random_fd < 0) {
+    if (random_fd < 0) {
 
         // #include <linux/random.h>
         // int ioctl(fd, RNDrequest, param);
@@ -91,12 +91,12 @@ void ubus_init_id_tree(struct avl_tree *tree)
         //                             };
         //        RNDZAPENTCNT, RNDCLEARPOOL - Zero the entropy count of all pools and add some
         //                         system data (such as wall clock) to the pools.
-		random_fd = open("/dev/urandom", O_RDONLY);
-		if (random_fd < 0) {
-			perror("open");
-			exit(1);
-		}
-	}
+        random_fd = open("/dev/urandom", O_RDONLY);
+        if (random_fd < 0) {
+            perror("open");
+            exit(1);
+        }
+    }
 
     // initialize an AVL tree to maintenance client id
     // AVL tree is height-balanced binary search tree:
@@ -111,7 +111,7 @@ void ubus_init_id_tree(struct avl_tree *tree)
     // ** NOTE **
     // 1. 一个节点如果是其父节点的左子节点，则所有位于其左右子树上的节点值均小于其父节点值
     // 2. 一个节点如果是其父节点的右子节点，则所有位于其左右子树上的节点值均大于其父节点值
-	avl_init(tree, ubus_cmp_id, false, NULL);
+    avl_init(tree, ubus_cmp_id, false, NULL);
 }
 
 /**
@@ -120,25 +120,25 @@ void ubus_init_id_tree(struct avl_tree *tree)
 bool ubus_alloc_id(struct avl_tree *tree, struct ubus_id *id, uint32_t val)
 {
     // point the key to id
-	id->avl.key = &id->id;
+    id->avl.key = &id->id;
 
     // set id to a fixed value
-	if (val) {
-		id->id = val;
-		return avl_insert(tree, &id->avl) == 0;
-	}
+    if (val) {
+        id->id = val;
+        return avl_insert(tree, &id->avl) == 0;
+    }
 
     // generate a random id seeding /dev/urandom
-	do {
+    do {
         // read 32 bits(an unsigned int number) from /dev/urandom
         // untill this number less than 1024
-		if (read(random_fd, &id->id, sizeof(id->id)) != sizeof(id->id))
-			return false;
+        if (read(random_fd, &id->id, sizeof(id->id)) != sizeof(id->id))
+            return false;
 
-		if (id->id < UBUS_SYSTEM_OBJECT_MAX)
-			continue;
-	} while (avl_insert(tree, &id->avl) != 0);
+        if (id->id < UBUS_SYSTEM_OBJECT_MAX)
+            continue;
+    } while (avl_insert(tree, &id->avl) != 0);
 
-	return true;
+    return true;
 }
 

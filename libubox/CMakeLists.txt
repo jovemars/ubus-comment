@@ -28,42 +28,42 @@ SET_TARGET_PROPERTIES(ubox-static PROPERTIES OUTPUT_NAME ubox)
 SET(LIBS)
 CHECK_FUNCTION_EXISTS(clock_gettime HAVE_GETTIME)
 IF(NOT HAVE_GETTIME)
-	CHECK_LIBRARY_EXISTS(rt clock_gettime "" NEED_GETTIME)
-	IF(NEED_GETTIME)
-		TARGET_LINK_LIBRARIES(ubox rt)
-	ENDIF()
+    CHECK_LIBRARY_EXISTS(rt clock_gettime "" NEED_GETTIME)
+    IF(NEED_GETTIME)
+        TARGET_LINK_LIBRARIES(ubox rt)
+    ENDIF()
 ENDIF()
 
 FILE(GLOB headers *.h)
 INSTALL(FILES ${headers}
-	DESTINATION include/libubox
+    DESTINATION include/libubox
 )
 INSTALL(TARGETS ubox ubox-static
-	ARCHIVE DESTINATION lib
-	LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
 )
 
 ADD_SUBDIRECTORY(lua)
 
 find_library(json NAMES json-c json)
 IF(EXISTS ${json})
-	ADD_LIBRARY(blobmsg_json SHARED blobmsg_json.c)
-	TARGET_LINK_LIBRARIES(blobmsg_json ubox ${json})
+    ADD_LIBRARY(blobmsg_json SHARED blobmsg_json.c)
+    TARGET_LINK_LIBRARIES(blobmsg_json ubox ${json})
 
-	ADD_EXECUTABLE(jshn jshn.c)
-	TARGET_LINK_LIBRARIES(jshn ${json})
+    ADD_EXECUTABLE(jshn jshn.c)
+    TARGET_LINK_LIBRARIES(jshn ${json})
 
-	ADD_LIBRARY(json_script SHARED json_script.c)
-	TARGET_LINK_LIBRARIES(json_script ubox)
+    ADD_LIBRARY(json_script SHARED json_script.c)
+    TARGET_LINK_LIBRARIES(json_script ubox)
 
-	INSTALL(TARGETS blobmsg_json jshn json_script
-		LIBRARY DESTINATION lib
-		RUNTIME DESTINATION bin
-	)
+    INSTALL(TARGETS blobmsg_json jshn json_script
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+    )
 
-	FILE(GLOB scripts sh/*.sh)
-	INSTALL(FILES ${scripts}
-		DESTINATION share/libubox
-	)
+    FILE(GLOB scripts sh/*.sh)
+    INSTALL(FILES ${scripts}
+        DESTINATION share/libubox
+    )
 
 ENDIF()

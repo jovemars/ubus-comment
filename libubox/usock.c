@@ -96,16 +96,16 @@ static void usock_set_flags(int sock, unsigned int type)
     //              Managing signals:
     //                  F_GETOWN - Return the process ID(positive) or process group ID(negative) currently receiving SIGIO and SIGURG signals for events on fd.
     //                  F_SETOWN - Set the process ID or process group ID that will receive SIGIO and SIGURG signals for events on fd. ID is specified in arg.
-	if (!(type & USOCK_NOCLOEXEC))
-		fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
+    if (!(type & USOCK_NOCLOEXEC))
+        fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
 
-	if (type & USOCK_NONBLOCK)
-		fcntl(sock, F_SETFL, fcntl(sock, F_GETFL) | O_NONBLOCK);
+    if (type & USOCK_NONBLOCK)
+        fcntl(sock, F_SETFL, fcntl(sock, F_GETFL) | O_NONBLOCK);
 }
 
 static int usock_connect(struct sockaddr *sa, int sa_len, int family, int socktype, bool server)
 {
-	int sock;
+    int sock;
 
     // #include <sys/types.h>
     // #include <sys/socket.h>
@@ -169,12 +169,12 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
     // |Exception  | POLLPRI   | Urgent data arrived.  SIGURG is sent then. |
     // ----------------------------------------------------------------------
 
-	sock = socket(family, socktype, 0);
-	if (sock < 0)
-		return -1;
+    sock = socket(family, socktype, 0);
+    if (sock < 0)
+        return -1;
 
-	if (server) {
-		const int one = 1;
+    if (server) {
+        const int one = 1;
 
         // #include <sys/types.h>
         // #include <sys/socket.h>
@@ -269,7 +269,7 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
         //                      IP_UNBLOCK_SOURCE   Unblock previously blocked multicast source. Returns EADDRNOTAVAIL when given source is not being blocked.
         //        optval - the value of the specified option.
         //        optlen - value length of the specified option.
-		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 
         // #include <sys/types.h>
         // #include <sys/socket.h>
@@ -309,7 +309,7 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
         //                  };
         //              for AF_X25, actual addr pointer to sockaddr_x25 structure.
         //              for AF_NETLINK, actual addr pointer to sockaddr_nl structure.
-		if (!bind(sock, sa, sa_len) &&
+        if (!bind(sock, sa, sa_len) &&
 
             // #include <sys/types.h>
             // #include <sys/socket.h>
@@ -322,9 +322,9 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
             //              The backlog argument defines the maximum queue length for completely
             //              established sockets waiting to be accepted. If a connection request arrives
             //              when the queue is full, the client may raise ECONNREFUSED error or reattempt.
-		    (socktype != SOCK_STREAM || !listen(sock, SOMAXCONN)))
-			return sock;
-	} else {
+            (socktype != SOCK_STREAM || !listen(sock, SOMAXCONN)))
+            return sock;
+    } else {
 
         // #include <sys/types.h>
         // #include <sys/socket.h>
@@ -335,9 +335,9 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
         //              are sent to or received from, then system calls send() and recv() may be used instead of sendto() and recvfrom().
         //              If the socket is of type SOCK_STREAM or SOCK_SEQPACKET, this call attempts to make
         //              a connection to the socket that is bound to the address specified by addr.
-		if (!connect(sock, sa, sa_len) || errno == EINPROGRESS)
-			return sock;
-	}
+        if (!connect(sock, sa, sa_len) || errno == EINPROGRESS)
+            return sock;
+    }
 
     // #include <unistd.h>
     // int close(int fd);
@@ -349,8 +349,8 @@ static int usock_connect(struct sockaddr *sa, int sa_len, int family, int sockty
     //              The close-on-exec file descriptor flag can be used to ensure that a file descriptor is
     //              automatically closed upon a successful execve().
     //              fsync() before close() can be used to diagnose I/O errors.
-	close(sock);
-	return -1;
+    close(sock);
+    return -1;
 }
 
 static int usock_unix(const char *host, int socktype, bool server)
@@ -380,13 +380,13 @@ static int usock_unix(const char *host, int socktype, bool server)
     //                            the returned addrlen is greater than sizeof(sa_family_t), and the name of the socket
     //                            is contained in the first (addrlen - sizeof(sa_family_t)) bytes of sun_path.
     //                            The abstract socket namespace is a nonportable Linux extension.
-	struct sockaddr_un sun = {.sun_family = AF_UNIX};
+    struct sockaddr_un sun = {.sun_family = AF_UNIX};
 
-	if (strlen(host) >= sizeof(sun.sun_path)) {
-		errno = EINVAL;
-		return -1;
-	}
-	strcpy(sun.sun_path, host);
+    if (strlen(host) >= sizeof(sun.sun_path)) {
+        errno = EINVAL;
+        return -1;
+    }
+    strcpy(sun.sun_path, host);
 
     // #include <sys/socket.h>
     // #include <sys/un.h>
@@ -399,21 +399,21 @@ static int usock_unix(const char *host, int socktype, bool server)
     //                  SOCK_STREAM, for a stream-oriented socket;
     //                  SOCK_DGRAM, for a datagram-oriented socket(reliable and don't reorder datagrams)
     //                  SOCK_SEQPACKET, for a connection-oriented socket
-	return usock_connect((struct sockaddr*)&sun, sizeof(sun), AF_UNIX, socktype, server);
+    return usock_connect((struct sockaddr*)&sun, sizeof(sun), AF_UNIX, socktype, server);
 }
 
 static int usock_inet(int type, const char *host, const char *service, int socktype, bool server)
 {
-	struct addrinfo *result, *rp;
-	struct addrinfo hints = {
-		.ai_family = (type & USOCK_IPV6ONLY) ? AF_INET6 :
-			(type & USOCK_IPV4ONLY) ? AF_INET : AF_UNSPEC,
-		.ai_socktype = socktype,
-		.ai_flags = AI_ADDRCONFIG
-			| ((type & USOCK_SERVER) ? AI_PASSIVE : 0)
-			| ((type & USOCK_NUMERIC) ? AI_NUMERICHOST : 0),
-	};
-	int sock = -1, ret;
+    struct addrinfo *result, *rp;
+    struct addrinfo hints = {
+        .ai_family = (type & USOCK_IPV6ONLY) ? AF_INET6 :
+            (type & USOCK_IPV4ONLY) ? AF_INET : AF_UNSPEC,
+        .ai_socktype = socktype,
+        .ai_flags = AI_ADDRCONFIG
+            | ((type & USOCK_SERVER) ? AI_PASSIVE : 0)
+            | ((type & USOCK_NUMERIC) ? AI_NUMERICHOST : 0),
+    };
+    int sock = -1, ret;
 
     // #include <sys/types.h>
     // #include <sys/socket.h>
@@ -464,14 +464,14 @@ static int usock_inet(int type, const char *host, const char *service, int sockt
     if ((ret = getaddrinfo(host, service, &hints, &result)) != 0)
     {
         fprintf(stderr, "getaddrinfo() failed: %s\n", gai_strerror(ret));
-		return -1;
+        return -1;
     }
 
-	for (rp = result; rp != NULL; rp = rp->ai_next) {
-		sock = usock_connect(rp->ai_addr, rp->ai_addrlen, rp->ai_family, socktype, server);
-		if (sock >= 0)
-			break;
-	}
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        sock = usock_connect(rp->ai_addr, rp->ai_addrlen, rp->ai_family, socktype, server);
+        if (sock >= 0)
+            break;
+    }
 
     // #include <sys/types.h>
     // #include <sys/socket.h>
@@ -479,14 +479,14 @@ static int usock_inet(int type, const char *host, const char *service, int sockt
     // void freeaddrinfo(struct addrinfo *res);
     // Description: The freeaddrinfo() function frees the memory that was allocated for
     //              the dynamically allocated linked list res.
-	freeaddrinfo(result);
-	return sock;
+    freeaddrinfo(result);
+    return sock;
 }
 
 int usock(int type, const char *host, const char *service) {
-	int socktype = ((type & 0xff) == USOCK_TCP) ? SOCK_STREAM : SOCK_DGRAM;
-	bool server = !!(type & USOCK_SERVER);
-	int sock;
+    int socktype = ((type & 0xff) == USOCK_TCP) ? SOCK_STREAM : SOCK_DGRAM;
+    bool server = !!(type & USOCK_SERVER);
+    int sock;
 
      // TODO: should check whether host is valid for usock_inet()
 
@@ -510,16 +510,16 @@ int usock(int type, const char *host, const char *service) {
     //     拷贝过去，不经过协议层编解码，节省系统cpu，并且不经过网卡，不受网卡带宽的限制。
     //     AF_UNIX的传输速率远远大于AF_INET
     //     AF_INET不仅可以用作本机的跨进程通信，也可以用于不同机器之间的通信; AF_UNIX只能用于本机进程间通信。
-	if (type & USOCK_UNIX)
+    if (type & USOCK_UNIX)
         // use unix domain socket
-		sock = usock_unix(host, socktype, server);
-	else
+        sock = usock_unix(host, socktype, server);
+    else
         // use linux network stack
-		sock = usock_inet(type, host, service, socktype, server);
+        sock = usock_inet(type, host, service, socktype, server);
 
-	if (sock < 0)
-		return -1;
+    if (sock < 0)
+        return -1;
 
-	usock_set_flags(sock, type);
-	return sock;
+    usock_set_flags(sock, type);
+    return sock;
 }

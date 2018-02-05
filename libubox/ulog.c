@@ -32,132 +32,132 @@ static const char *_ulog_ident = NULL;
 
 static const char *ulog_default_ident(void)
 {
-	FILE *self;
-	static char line[64];
-	char *p = NULL;
+    FILE *self;
+    static char line[64];
+    char *p = NULL;
 
-	if ((self = fopen("/proc/self/status", "r")) != NULL) {
-		while (fgets(line, sizeof(line), self)) {
-			if (!strncmp(line, "Name:", 5)) {
-				strtok(line, "\t\n");
-				p = strtok(NULL, "\t\n");
-				break;
-			}
-		}
-		fclose(self);
-	}
+    if ((self = fopen("/proc/self/status", "r")) != NULL) {
+        while (fgets(line, sizeof(line), self)) {
+            if (!strncmp(line, "Name:", 5)) {
+                strtok(line, "\t\n");
+                p = strtok(NULL, "\t\n");
+                break;
+            }
+        }
+        fclose(self);
+    }
 
-	return p;
+    return p;
 }
 
 static void ulog_defaults(void)
 {
-	char *env;
+    char *env;
 
-	if (_ulog_initialized)
-		return;
+    if (_ulog_initialized)
+        return;
 
-	env = getenv("PREINIT");
+    env = getenv("PREINIT");
 
-	if (_ulog_channels < 0) {
-		if (env && !strcmp(env, "1"))
-			_ulog_channels = ULOG_KMSG;
-		else if (isatty(1))
-			_ulog_channels = ULOG_STDIO;
-		else
-			_ulog_channels = ULOG_SYSLOG;
-	}
+    if (_ulog_channels < 0) {
+        if (env && !strcmp(env, "1"))
+            _ulog_channels = ULOG_KMSG;
+        else if (isatty(1))
+            _ulog_channels = ULOG_STDIO;
+        else
+            _ulog_channels = ULOG_SYSLOG;
+    }
 
-	if (_ulog_facility < 0) {
-		if (env && !strcmp(env, "1"))
-			_ulog_facility = LOG_DAEMON;
-		else if (isatty(1))
-			_ulog_facility = LOG_USER;
-		else
-			_ulog_facility = LOG_DAEMON;
-	}
+    if (_ulog_facility < 0) {
+        if (env && !strcmp(env, "1"))
+            _ulog_facility = LOG_DAEMON;
+        else if (isatty(1))
+            _ulog_facility = LOG_USER;
+        else
+            _ulog_facility = LOG_DAEMON;
+    }
 
-	if (_ulog_ident == NULL && _ulog_channels != ULOG_STDIO)
-		_ulog_ident = ulog_default_ident();
+    if (_ulog_ident == NULL && _ulog_channels != ULOG_STDIO)
+        _ulog_ident = ulog_default_ident();
 
-	if (_ulog_channels & ULOG_SYSLOG)
-		openlog(_ulog_ident, 0, _ulog_facility);
+    if (_ulog_channels & ULOG_SYSLOG)
+        openlog(_ulog_ident, 0, _ulog_facility);
 
-	_ulog_initialized = 1;
+    _ulog_initialized = 1;
 }
 
 static void ulog_kmsg(int priority, const char *fmt, va_list ap)
 {
-	FILE *kmsg;
+    FILE *kmsg;
 
-	if ((kmsg = fopen("/dev/kmsg", "w")) != NULL) {
-		fprintf(kmsg, "<%u>", priority);
+    if ((kmsg = fopen("/dev/kmsg", "w")) != NULL) {
+        fprintf(kmsg, "<%u>", priority);
 
-		if (_ulog_ident)
-			fprintf(kmsg, "%s: ", _ulog_ident);
+        if (_ulog_ident)
+            fprintf(kmsg, "%s: ", _ulog_ident);
 
-		vfprintf(kmsg, fmt, ap);
-		fclose(kmsg);
-	}
+        vfprintf(kmsg, fmt, ap);
+        fclose(kmsg);
+    }
 }
 
 static void ulog_stdio(int priority, const char *fmt, va_list ap)
 {
-	FILE *out = stderr;
+    FILE *out = stderr;
 
-	if (priority == LOG_INFO || priority == LOG_NOTICE)
-		out = stdout;
+    if (priority == LOG_INFO || priority == LOG_NOTICE)
+        out = stdout;
 
-	if (_ulog_ident)
-		fprintf(out, "%s: ", _ulog_ident);
+    if (_ulog_ident)
+        fprintf(out, "%s: ", _ulog_ident);
 
-	vfprintf(out, fmt, ap);
+    vfprintf(out, fmt, ap);
 }
 
 static void ulog_syslog(int priority, const char *fmt, va_list ap)
 {
-	vsyslog(priority, fmt, ap);
+    vsyslog(priority, fmt, ap);
 }
 
 void ulog_open(int channels, int facility, const char *ident)
 {
-	_ulog_channels = channels;
-	_ulog_facility = facility;
-	_ulog_ident = ident;
+    _ulog_channels = channels;
+    _ulog_facility = facility;
+    _ulog_ident = ident;
 }
 
 void ulog_threshold(int threshold)
 {
-	_ulog_threshold = threshold;
+    _ulog_threshold = threshold;
 }
 
 void ulog(int priority, const char *fmt, ...)
 {
-	va_list ap;
+    va_list ap;
 
-	if (priority > _ulog_threshold)
-		return;
+    if (priority > _ulog_threshold)
+        return;
 
-	ulog_defaults();
+    ulog_defaults();
 
-	if (_ulog_channels & ULOG_KMSG)
-	{
-		va_start(ap, fmt);
-		ulog_kmsg(priority, fmt, ap);
-		va_end(ap);
-	}
+    if (_ulog_channels & ULOG_KMSG)
+    {
+        va_start(ap, fmt);
+        ulog_kmsg(priority, fmt, ap);
+        va_end(ap);
+    }
 
-	if (_ulog_channels & ULOG_STDIO)
-	{
-		va_start(ap, fmt);
-		ulog_stdio(priority, fmt, ap);
-		va_end(ap);
-	}
+    if (_ulog_channels & ULOG_STDIO)
+    {
+        va_start(ap, fmt);
+        ulog_stdio(priority, fmt, ap);
+        va_end(ap);
+    }
 
-	if (_ulog_channels & ULOG_SYSLOG)
-	{
-		va_start(ap, fmt);
-		ulog_syslog(priority, fmt, ap);
-		va_end(ap);
-	}
+    if (_ulog_channels & ULOG_SYSLOG)
+    {
+        va_start(ap, fmt);
+        ulog_syslog(priority, fmt, ap);
+        va_end(ap);
+    }
 }

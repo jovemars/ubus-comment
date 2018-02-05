@@ -22,40 +22,40 @@
 #include "ubusd_obj.h"
 #include "ubusmsg.h"
 
-#define UBUSD_CLIENT_BACKLOG	32
-#define UBUS_OBJ_HASH_BITS	4
+#define UBUSD_CLIENT_BACKLOG    32
+#define UBUS_OBJ_HASH_BITS    4
 
 extern struct blob_buf b;
 
 struct ubus_msg_buf {
-	uint32_t refcount; /* ~0: uses external data buffer */
-	struct ubus_msghdr hdr;
-	struct blob_attr *data;
-	int fd;
-	int len;
+    uint32_t refcount; /* ~0: uses external data buffer */
+    struct ubus_msghdr hdr;
+    struct blob_attr *data;
+    int fd;
+    int len;
 };
 
 struct ubus_client {
-	struct ubus_id id;    // unique identitier allocated by ubusd
-	struct uloop_fd sock; // client socket created by accept()
+    struct ubus_id id;    // unique identitier allocated by ubusd
+    struct uloop_fd sock; // client socket created by accept()
 
-	struct list_head objects;
+    struct list_head objects;
 
-	struct ubus_msg_buf *tx_queue[UBUSD_CLIENT_BACKLOG];
-	unsigned int txq_cur, txq_tail, txq_ofs;
+    struct ubus_msg_buf *tx_queue[UBUSD_CLIENT_BACKLOG];
+    unsigned int txq_cur, txq_tail, txq_ofs;
 
-	struct ubus_msg_buf *pending_msg;
-	int pending_msg_offset;
-	int pending_msg_fd;
-	struct {
-		struct ubus_msghdr hdr;
-		struct blob_attr data;
-	} hdrbuf;
+    struct ubus_msg_buf *pending_msg;
+    int pending_msg_offset;
+    int pending_msg_fd;
+    struct {
+        struct ubus_msghdr hdr;
+        struct blob_attr data;
+    } hdrbuf;
 };
 
 struct ubus_path {
-	struct list_head list;
-	const char name[];
+    struct list_head list;
+    const char name[];
 };
 
 struct ubus_msg_buf *ubus_msg_new(void *data, int len, bool shared);

@@ -22,9 +22,9 @@
 #include <syslog.h>
 
 enum {
-	ULOG_KMSG   = (1 << 0),
-	ULOG_SYSLOG = (1 << 1),
-	ULOG_STDIO  = (1 << 2)
+    ULOG_KMSG   = (1 << 0),
+    ULOG_SYSLOG = (1 << 1),
+    ULOG_STDIO  = (1 << 2)
 };
 
 void ulog_open(int channels, int facility, const char *ident);
