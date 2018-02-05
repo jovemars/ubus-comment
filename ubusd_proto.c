@@ -469,7 +469,7 @@ struct ubus_client *ubusd_proto_new_client(int fd, uloop_fd_handler cb)
     if (!cl)
         return NULL;
 
-    // (&cl->objects)->next = (&cl->objects)->prev = &cl->objects;
+    // (&cl->objects)->next == (&cl->objects)->prev == &cl->objects;
     INIT_LIST_HEAD(&cl->objects);
     cl->sock.fd = fd; // client socket
     cl->sock.cb = cb; // client callback

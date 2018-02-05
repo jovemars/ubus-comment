@@ -102,16 +102,54 @@ void clock_gettime(int type, struct timespec *tv);
 
 static inline uint16_t __u_bswap16(uint16_t val)
 {
+    // right shift 8 bits to keep the higher byte
+    // left shift 8 bits to keep the lower byte
+    // bitwise-OR to combine them together
+    // for example, 0xaabb becomes 0xbbaa
     return ((val >> 8) & 0xffu) | ((val & 0xffu) << 8);
 }
 
 #if _GNUC_MIN_VER(4, 2)
+// GNUC extensive built-in function
+// __builtin_bswap32(x): Returns x with the order of the bytes reversed; 
+//                       for example, 0xaabbccdd becomes 0xddccbbaa. 
+//                       Byte here always means exactly 8 bits. 
+// __builtin_bswap64(x): Similar to __builtin_bswap32, except the argument
+//                       and return types are 64-bit. 
+//                       for example, 0x8899aabbccddeeff becomes 0xffeeddccbbaa9988
 #define __u_bswap32(x) __builtin_bswap32(x)
 #define __u_bswap64(x) __builtin_bswap64(x)
 #else
+// #include <byteswap.h>
+// bswap_16(x);
+// bswap_32(x);
+// bswap_64(x);
+// Desc: These macros are GNU extensions.
+//       These macros return a value in which the order of the bytes in their
+//       2-, 4-, or 8-byte arguments is reversed.
 #define __u_bswap32(x) bswap_32(x)
 #define __u_bswap64(x) bswap_64(x)
 #endif
+
+// #include <endian.h>
+// uint16_t htobe16(uint16_t host_16bits);
+// uint16_t htole16(uint16_t host_16bits);
+// uint16_t be16toh(uint16_t big_endian_16bits);
+// uint16_t le16toh(uint16_t little_endian_16bits);
+// uint32_t htobe32(uint32_t host_32bits);
+// uint32_t htole32(uint32_t host_32bits);
+// uint32_t be32toh(uint32_t big_endian_32bits);
+// uint32_t le32toh(uint32_t little_endian_32bits);
+// uint64_t htobe64(uint64_t host_64bits);
+// uint64_t htole64(uint64_t host_64bits);
+// uint64_t be64toh(uint64_t big_endian_64bits);
+// uint64_t le64toh(uint64_t little_endian_64bits);
+// Desc: NONstandard. These functions convert the byte encoding of integer values from the
+//       byte order that the current CPU (the "host") uses, to and from
+//       little-endian and big-endian byte order.
+//       The number, 16, 32 or 64, in the name of each function indicates the size of
+//       integer handled by the function.
+//       "be" means big endian, "le" means little endian
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
@@ -152,6 +190,9 @@ static inline uint16_t __u_bswap16(uint16_t val)
 #endif
 
 #ifndef __packed
+// The packed attribute specifies that a variable or structure field should have
+// the smallest possible alignment - one byte for a variable, and one bit for
+// a field, unless you specify a larger value with the aligned attribute.
 #define __packed __attribute__((packed))
 #endif
 
@@ -168,6 +209,14 @@ static inline uint16_t __u_bswap16(uint16_t val)
 #endif
 
 #ifndef __hidden
+// This attribute affects the linkage of the declaration to which it is attached.
+// It can be applied to variables and types as well as functions.
+// There are four supported visibility_type values: default, hidden, protected or internal.
+// default   - visible to other modules and, in shared libraries, may be overridden.
+// hidden    - cannot be referenced directly by other modules, but can be referenced
+//             indirectly via function pointers.
+// internal  - never called from another module.
+// protected - visible to other modules, but cannot be overridden by another module. 
 #define __hidden __attribute__((visibility("hidden")))
 #endif
 

@@ -51,7 +51,7 @@ enum {
 struct blob_attr {
     uint32_t id_len;
     char data[];
-} __packed;
+} __packed;  
 
 struct blob_attr_info {
     unsigned int type;

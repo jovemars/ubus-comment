@@ -21,11 +21,31 @@
 static bool
 blob_buffer_grow(struct blob_buf *buf, int minlen)
 {
+    // alligned with 256
     int delta = ((minlen / 256) + 1) * 256;
+
+    // buflen 
     buf->buflen += delta;
+
+    // #include <stdlib.h>
+    // void *realloc(void *ptr, size_t size);
+    // Desc: changes the size of the memory block pointed to by ptr to size bytes.
+    //    The contents will be unchanged in the range from the start of the region
+    //    up to the minimum of the old and new sizes.
+    //    If the new size is larger than the old size, the added memory will not be initialized.
+    //    If ptr is NULL, then the call is equivalent to malloc(size), for all values of size;
+    //    If size is equal to zero, and ptr is not NULL, then the call is equivalent to free(ptr).
+    //    Unless ptr is NULL, it must be returned by earlier call malloc(), calloc(), or realloc().
+    //    On success, returns a pointer to the newly allocated memory(possibly moved), the original
+    //    pointer ptr is invalidated and any access to it is undefined behavior.
+    //    On fail, returns NULL, and the original memory referenced to by ptr shall not be changed.
     buf->buf = realloc(buf->buf, buf->buflen);
     if (buf->buf)
-        memset(buf->buf + buf->buflen - delta, 0, delta);
+        // #include <string.h>
+        // void *memset(void *s, int c, size_t n);
+        // Desc: fills the first n bytes of the memory area pointed to by s with the constant byte c.
+        //    returns a pointer to the memory area s. No errors are defined.
+        memset(buf->buf + buf->buflen - delta, 0, delta); // Set new memory to 0
     return !!buf->buf;
 }
 
@@ -53,25 +73,37 @@ attr_to_offset(struct blob_buf *buf, struct blob_attr *attr)
 void
 blob_buf_grow(struct blob_buf *buf, int required)
 {
-    int offset_head = attr_to_offset(buf, buf->head);
+    int offset_head = attr_to_offset(buf, buf->head); // (char *)buf->head - (char *)buf->buf + BLOB_COOKIE
 
+    // blob_buffer_grow(buf, required)
+    // return new location of buf->buf
     if (!buf->grow || !buf->grow(buf, required))
         return;
 
-    buf->head = offset_to_attr(buf, offset_head);
+    // since the location of buf->buf may be moved, keep the buf->head repoint to the position before realloc
+    buf->head = offset_to_attr(buf, offset_head); // (char *)buf->buf + offset_head - BLOB_COOKIE
 }
 
 static struct blob_attr *
 blob_add(struct blob_buf *buf, struct blob_attr *pos, int id, int payload)
 {
-    int offset = attr_to_offset(buf, pos);
+    // obain the offset from the address of buf to the address of pos
+    int offset = attr_to_offset(buf, pos); // (char *)pos - (char *)buf->buf + BLOB_COOKIE
+
+    // payload represents the length of buf->head->data, it should equals to buf->head->id_len
+    // buf->buflen represents the total size of buf->buf
     int required = (offset - BLOB_COOKIE + sizeof(struct blob_attr) + payload) - buf->buflen;
     struct blob_attr *attr;
 
+    // obtain the position referenced by pos
     if (required > 0) {
+        // no enough space for new message, call buf->grow() to realloc more.
         blob_buf_grow(buf, required);
-        attr = offset_to_attr(buf, offset);
+
+        // retrieve the positon in new buf
+        attr = offset_to_attr(buf, offset); // (char *)buf->buf + offset - BLOB_COOKIE
     } else {
+        // current memory is enough
         attr = pos;
     }
 
@@ -83,6 +115,7 @@ blob_add(struct blob_buf *buf, struct blob_attr *pos, int id, int payload)
 int
 blob_buf_init(struct blob_buf *buf, int id)
 {
+    // call when no enough buffer spaces to allocate new space.
     if (!buf->grow)
         buf->grow = blob_buffer_grow;
 
