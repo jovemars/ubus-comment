@@ -98,6 +98,7 @@ blob_is_extended(const struct blob_attr *attr)
 static inline unsigned int
 blob_len(const struct blob_attr *attr)
 {
+    // covert from big endian, and fetch last 24 bits, that is the length of stucture attr and the data
     return (be32_to_cpu(attr->id_len) & BLOB_ATTR_LEN_MASK) - sizeof(struct blob_attr);
 }
 
@@ -107,6 +108,7 @@ blob_len(const struct blob_attr *attr)
 static inline unsigned int
 blob_raw_len(const struct blob_attr *attr)
 {
+    // blob_len() return the length of data segment(payload) of attr
     return blob_len(attr) + sizeof(struct blob_attr);
 }
 

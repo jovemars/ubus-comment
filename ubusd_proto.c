@@ -57,8 +57,14 @@ static void ubus_msg_init(struct ubus_msg_buf *ub, uint8_t type, uint16_t seq, u
     ub->hdr.peer = peer;
 }
 
+/**
+ * ubus_msg_from_blob: fetch the message from the address pointed to by b.head
+ */
 static struct ubus_msg_buf *ubus_msg_from_blob(bool shared)
 {
+    // boolean type variable shared represents whether ubus_msg_buf and blob_buf share the same memory
+    // true  - returned ubus_msg_buf type stucture fetches the message from b directly.
+    // false - returned ubus_msg_buf type stucture creates a message copy
     return ubus_msg_new(b.head, blob_raw_len(b.head), shared);
 }
 
@@ -90,13 +96,21 @@ static bool ubusd_send_hello(struct ubus_client *cl)
 {
     struct ubus_msg_buf *ub;
 
-    // 
+    // initialize blob_buf type global variable b
+    // b.head = b.buf
+    // b.head->id_len = bswap32(4)
+    // b.buflen = 256
     blob_buf_init(&b, 0);
+
+    // fetch the message stored by b.head
     ub = ubus_msg_from_blob(true);
     if (!ub)
         return false;
 
+    // initialize the ub->hdr segment
     ubus_msg_init(ub, UBUS_MSG_HELLO, 0, cl->id.id);
+
+    // add moniter 
     ubus_msg_send(cl, ub, true);
     return true;
 }

@@ -38,24 +38,38 @@ static struct ubus_msg_buf *ubus_msg_ref(struct ubus_msg_buf *ub)
     return ub;
 }
 
+/**
+ * ubus_msg_new: fetch a message from blob_buf
+ */
 struct ubus_msg_buf *ubus_msg_new(void *data, int len, bool shared)
 {
     struct ubus_msg_buf *ub;
     int buflen = sizeof(*ub);
 
     if (!shared)
+        // false, create a copy of b.head
+        // so we need len more bytes
         buflen += len;
 
+    // #include <stdlib.h>
+    // void *calloc(size_t nmemb, size_t size);
+    // Desc: allocates memory for an array of nmemb elements of size bytes each and//
+    //    returns a pointer to the allocated memory. The memory is set to zero.
+    //    If nmemb or size is 0, then calloc() returns NULL.
     ub = calloc(1, buflen);
     if (!ub)
         return NULL;
 
+    // set remote fd later
     ub->fd = -1;
 
+    // fetch the message
     if (shared) {
+        // true, use external data buffer
         ub->refcount = ~0;
         ub->data = data;
     } else {
+        // false, use the len more bytes calloced earlier
         ub->refcount = 1;
         ub->data = (void *) (ub + 1);
         if (data)
@@ -136,6 +150,7 @@ void ubus_msg_send(struct ubus_client *cl, struct ubus_msg_buf *ub, bool free)
     int written;
 
     if (!cl->tx_queue[cl->txq_cur]) {
+        // no message waiting in transmition queue
         written = ubus_msg_writev(cl->sock.fd, ub, 0);
         if (written >= ub->len + sizeof(ub->hdr))
             goto out;

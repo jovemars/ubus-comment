@@ -18,10 +18,13 @@
 
 #include "blob.h"
 
+/**
+ * blob_buffer_grow: callback for blob_buf to extend size of buf->buf
+ */
 static bool
 blob_buffer_grow(struct blob_buf *buf, int minlen)
 {
-    // alligned with 256
+    // alligned with 256, everytime memory is not enough, realloc at least 256 byte for once
     int delta = ((minlen / 256) + 1) * 256;
 
     // buflen 
@@ -49,14 +52,34 @@ blob_buffer_grow(struct blob_buf *buf, int minlen)
     return !!buf->buf;
 }
 
+/**
+ * blob_init: initialize the attr->id_len according to id and len
+ */
 static void
 blob_init(struct blob_attr *attr, int id, unsigned int len)
 {
+    // keep last 24 bits of len
     len &= BLOB_ATTR_LEN_MASK;
+
+    // left shift 24 bit, and keep higher 7 bits(lower 7 bits of original id)
+    // leave the highest bit unused currently
     len |= (id << BLOB_ATTR_ID_SHIFT) & BLOB_ATTR_ID_MASK;
+
+    /**
+     *  ___ _______ _________________
+     * |   |  id   |       len       |
+     * |___|_______|_________________|
+     * |<1>|<  7  >|<       24      >|
+     *
+     */
+
+    // covert to big endian
     attr->id_len = cpu_to_be32(len);
 }
 
+/**
+ * offset_to_attr: fetch the address adding offset from buf->buf.
+ */
 static inline struct blob_attr *
 offset_to_attr(struct blob_buf *buf, int offset)
 {
@@ -64,12 +87,18 @@ offset_to_attr(struct blob_buf *buf, int offset)
     return ptr;
 }
 
+/**
+ * attr_to_offset: fetch the offset from buf->buf to the address pointed to by attr.
+ */
 static inline int
 attr_to_offset(struct blob_buf *buf, struct blob_attr *attr)
 {
     return (char *)attr - (char *) buf->buf + BLOB_COOKIE;
 }
 
+/**
+ * blob_buf_grow: call buf->grow() to extand the memory size of buf->buf
+ */
 void
 blob_buf_grow(struct blob_buf *buf, int required)
 {
@@ -100,14 +129,17 @@ blob_add(struct blob_buf *buf, struct blob_attr *pos, int id, int payload)
         // no enough space for new message, call buf->grow() to realloc more.
         blob_buf_grow(buf, required);
 
-        // retrieve the positon in new buf
+        // retrieve the positon where u want to insert to in new buf
         attr = offset_to_attr(buf, offset); // (char *)buf->buf + offset - BLOB_COOKIE
     } else {
         // current memory is enough
         attr = pos;
     }
 
+    // initialize atrr->id_len
     blob_init(attr, id, payload + sizeof(struct blob_attr));
+
+    // zero clear the payload
     blob_fill_pad(attr);
     return attr;
 }
@@ -115,11 +147,15 @@ blob_add(struct blob_buf *buf, struct blob_attr *pos, int id, int payload)
 int
 blob_buf_init(struct blob_buf *buf, int id)
 {
-    // call when no enough buffer spaces to allocate new space.
+    // called when no enough buffer spaces to allocate new space.
     if (!buf->grow)
         buf->grow = blob_buffer_grow;
 
+    // set buf->head and buf->buf point to a same address at initialization
     buf->head = buf->buf;
+
+    // add a blob_attr space at the address pointed to by buf->buf
+    // with payload length = 0
     if (blob_add(buf, buf->buf, id, 0) == NULL)
         return -ENOMEM;
 
@@ -134,11 +170,18 @@ blob_buf_free(struct blob_buf *buf)
     buf->buflen = 0;
 }
 
+/**
+ * blob_fill_pad: zero clear the data segment of blob_attr pointer attr
+ */
 void
 blob_fill_pad(struct blob_attr *attr)
 {
     char *buf = (char *) attr;
+
+    // fetch the total length of stucture attr and its data
     int len = blob_pad_len(attr);
+
+    // caculate the data length
     int delta = len - blob_raw_len(attr);
 
     if (delta > 0)
