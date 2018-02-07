@@ -98,6 +98,33 @@ void ubus_msg_free(struct ubus_msg_buf *ub)
 
 static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
 {
+    // #include <sys/types.h>
+    // #include <sys/socket.h>
+    // ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+    // ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+    //                const struct sockaddr *dest_addr, socklen_t addrlen);
+    // ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags);
+    // Desc: used to transmit a message to another socket.
+    //    1. send() may be used only when the socket is in a connected state.
+    //       sendto() and sendmsg() can be used either on a connection-mode, or connectionless-mode
+    //    2. write(sockfd, buf, len) == send(sockfd, buf, len, 0)
+    //       send(sockfd, buf, len, flags) == sendto(sockfd, buf, len, flags, NULL, 0)
+    //    3. sockfd is the file descriptor of the sending socket.
+    //    4. If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET) socket,
+    //       the arguments dest_addr and addrlen are ignored. 
+    //       For sendto(), target address is specified by dest_addr with addrlen specifying its size.
+    //       For sendmsg(), target address is msg.msg_name, with msg.msg_namelen specifying its size.
+    //    5. For send() and sendto(), the message is found in buf and has length len.
+    //       For sendmsg(), the message is pointed to by the elements of the array msg.msg_iov.
+    //       sendmsg() also allows sending ancillary data in msg.msg_control.
+    //    6. send() normally blocks when the send buffer of the socket is not enough.
+    //    7. The argument flags is the bitwise OR of zero or more of the following flags:
+    //           MSG_CONFIRM   - Valid only on SOCK_DGRAM and SOCK_RAW sockets. Link layer will regularly
+    //                           reprobe the neighbor via unicast ARP, unless a successful reply is received
+    //           MSG_DONTROUTE - Send to hosts only on directly connected networks.
+    //           MSG_DONTWAIT  - Enables nonblocking operation for once; return EAGAIN or EWOULDBLOCK when would block.
+    //           MSG_EOR       - Terminates a record
+    //           MSG_MORE      - The caller has more data to send.
     static struct iovec iov[2];
     static struct {
         struct cmsghdr h;
@@ -111,7 +138,7 @@ static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
     };
     struct msghdr msghdr = {
         .msg_iov = iov,
-        .msg_iovlen = ARRAY_SIZE(iov),
+        .msg_iovlen = ARRAY_SIZE(iov),     // (sizeof(x) / sizeof((x)[0]))
         .msg_control = &fd_buf,
         .msg_controllen = sizeof(fd_buf),
     };
@@ -147,10 +174,10 @@ static void ubus_msg_enqueue(struct ubus_client *cl, struct ubus_msg_buf *ub)
 /* takes the msgbuf reference */
 void ubus_msg_send(struct ubus_client *cl, struct ubus_msg_buf *ub, bool free)
 {
-    int written;
+    int written; // the number of bytes sent
 
     if (!cl->tx_queue[cl->txq_cur]) {
-        // no message waiting in transmition queue
+        // no message waiting in transmition queue, send directly
         written = ubus_msg_writev(cl->sock.fd, ub, 0);
         if (written >= ub->len + sizeof(ub->hdr))
             goto out;
@@ -163,6 +190,8 @@ void ubus_msg_send(struct ubus_client *cl, struct ubus_msg_buf *ub, bool free)
         /* get an event once we can write to the socket again */
         uloop_fd_add(&cl->sock, ULOOP_READ | ULOOP_WRITE | ULOOP_EDGE_TRIGGER);
     }
+
+    // add this message at the tail of queue
     ubus_msg_enqueue(cl, ub);
 
 out:
