@@ -76,6 +76,7 @@ struct ubus_msg_buf *ubus_msg_new(void *data, int len, bool shared)
             memcpy(ub + 1, data, len);
     }
 
+    // ub->len is the length of ub->data, not including ub->hdr
     ub->len = len;
     return ub;
 }
@@ -106,41 +107,116 @@ static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
     // ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags);
     // Desc: used to transmit a message to another socket.
     //    1. send() may be used only when the socket is in a connected state.
-    //       sendto() and sendmsg() can be used either on a connection-mode, or connectionless-mode
     //    2. write(sockfd, buf, len) == send(sockfd, buf, len, 0)
     //       send(sockfd, buf, len, flags) == sendto(sockfd, buf, len, flags, NULL, 0)
-    //    3. sockfd is the file descriptor of the sending socket.
-    //    4. If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET) socket,
-    //       the arguments dest_addr and addrlen are ignored. 
-    //       For sendto(), target address is specified by dest_addr with addrlen specifying its size.
-    //       For sendmsg(), target address is msg.msg_name, with msg.msg_namelen specifying its size.
-    //    5. For send() and sendto(), the message is found in buf and has length len.
-    //       For sendmsg(), the message is pointed to by the elements of the array msg.msg_iov.
-    //       sendmsg() also allows sending ancillary data in msg.msg_control.
-    //    6. send() normally blocks when the send buffer of the socket is not enough.
-    //    7. The argument flags is the bitwise OR of zero or more of the following flags:
+    //    3. For send() and sendto(), the message is found in buf and has length len;
+    //           blocks when the send buffer of the socket is not enough.
+    //    4. For sendto(), target address is specified by dest_addr with addrlen specifying its size. 
+    //           On a connection-mode(SOCK_STREAM, SOCK_SEQPACKET) socket, dest_addr and addrlen are ignored.
+    //    5. For sendmsg(), the message and target address is specified by structure msghdr:
+    //           struct iovec {
+    //               void  *iov_base;    /* Starting address */
+    //               size_t iov_len;     /* Number of bytes to transfer */
+    //           };
+    //           struct msghdr {
+    //               void         *msg_name;       /* optional address */
+    //               socklen_t     msg_namelen;    /* size of address */
+    //               struct iovec *msg_iov;        /* scatter/gather array */
+    //               size_t        msg_iovlen;     /* # elements in msg_iov */
+    //               void         *msg_control;    /* ancillary data, see below */
+    //               size_t        msg_controllen; /* ancillary data buffer len */
+    //               int           msg_flags;      /* flags (unused) */
+    //           };
+    //           msg_name, msg_namelen       - target address and members on an unconnected socket;
+    //                                         NULL and 0 on a connected socket.
+    //           msg_iov, msg_iovlen         - msg_iovlen buffers of data described by msg_iov.
+    //           msg_control, msg_controllen - ancillary data and members which is a sequence of cmsghdr structures 
+    //                                         with appended data. /proc/sys/net/core/optmem_max defines the max size.
+    //                                         The cmsghdr structure is defined as follows:
+    //                                             struct cmsghdr {
+    //                                                 size_t cmsg_len;    /* Data byte count, including header
+    //                                                                        (type is socklen_t in POSIX) */
+    //                                                 int    cmsg_level;  /* Originating protocol */
+    //                                                 int    cmsg_type;   /* Protocol-specific type */
+    //                                                 
+    //                                                 /* followed by unsigned char cmsg_data[]; */
+    //                                             };
+    //                                  msg_control
+    //                   _           _ ¡ý____________  _           _
+    //                  /           /  |  cmsg_len   |  \           \
+    //                 |           |   |_____________|   |           |
+    //                 |           |   |  cmsg_level |   |_ cmsg_hdr |
+    //                 |           |   |_____________|   |           |
+    //                 |           |   |  cmsg_type  |   |           |
+    //                 | CMSG_LEN _|   |_____________| _/            |
+    //                 | cmsg_len  |   |padding bytes|               |_ CMSG_SPACE
+    //                 |           |   |_____________|               |
+    //                 |           |   |             |               |
+    //                 |           |   |  cmsg_data  |               |
+    //                 |           |   |             |               |
+    //                 |            \_ |_____________|               |
+    //                 |               |padding bytes|               |
+    // msg_controllen _|             _ |_____________| _           _/
+    //                 |            /  |  cmsg_len   |  \           \
+    //                 |           |   |_____________|   |           |
+    //                 |           |   |  cmsg_level |   |_ cmsg_hdr |
+    //                 |           |   |_____________|   |           |
+    //                 |           |   |  cmsg_type  |   |           |
+    //                 | CMSG_LEN _|   |_____________| _/            |
+    //                 | cmsg_len  |   |padding bytes|               |_ CMSG_SPACE
+    //                 |           |   |_____________|               |
+    //                 |           |   |             |               |
+    //                 |           |   |  cmsg_data  |               |
+    //                 |           |   |             |               |
+    //                  \_          \_ |_____________|             _/
+    //                                         The following macros use to access the sequence of cmsghdr structures:
+    //                                             struct cmsghdr *CMSG_FIRSTHDR(struct msghdr *msgh)
+    //                                                 - returns the first cmsghdr of msgh
+    //                                             struct cmsghdr *CMSG_NXTHDR(struct msghdr *msgh, struct cmsghdr *cmsg)
+    //                                                 - returns the next valid cmsghdr from cmsg in msgh
+    //                                             size_t CMSG_ALIGN(size_t len)
+    //                                                 - returns the minimum number which is equalitive to or bigger than len 
+    //                                                   and is a multiple of sizeof(long)
+    //                                                   ((len) + sizeof(long) - 1) & (~(sizeof(long) - 1))
+    //                                             size_t CMSG_SPACE(size_t len)
+    //                                                 - returns the byte number of an ancillary element with payload
+    //                                                   (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+    //                                                   msg_controllen field of the msghdr should be set to the sum of the
+    //                                                   CMSG_SPACE() of the length of all control messages in the buffer.
+    //                                             size_t CMSG_LEN(size_t len)
+    //                                                 - return cmsg_len
+    //                                                   (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+    //                                             unsigned char *CMSG_DATA(struct cmsghdr *cmsg)
+    //                                                 - the data portion of cmsg.
+    //                                                   ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
+    //    6. The argument flags is the bitwise OR of zero or more of the following flags:
     //           MSG_CONFIRM   - Valid only on SOCK_DGRAM and SOCK_RAW sockets. Link layer will regularly
     //                           reprobe the neighbor via unicast ARP, unless a successful reply is received
     //           MSG_DONTROUTE - Send to hosts only on directly connected networks.
     //           MSG_DONTWAIT  - Enables nonblocking operation for once; return EAGAIN or EWOULDBLOCK when would block.
     //           MSG_EOR       - Terminates a record
-    //           MSG_MORE      - The caller has more data to send.
+    //           MSG_MORE      - Inform kernel the caller has more data to send.
+    //                           For TCP, all queued partial frames are sent when this flag cleared.
+    //                           For UDP, package all of the data into a single datagram
+    //           MSG_NOSIGNAL  - Don't generate a SIGPIPE signal if the connection peer has closed for once.
+    //           MSG_OOB       - Sends out-of-band data on sockets that support this notion
     static struct iovec iov[2];
     static struct {
         struct cmsghdr h;
         int fd;
     } fd_buf = {
         .h = {
-            .cmsg_len = sizeof(fd_buf),
+            .cmsg_len = sizeof(fd_buf), // CMSG_LEN(sizeof(int))
             .cmsg_level = SOL_SOCKET,
-            .cmsg_type = SCM_RIGHTS,
+            .cmsg_type = SCM_RIGHTS,    // Send or receive a set of open file descriptors from another process.
+                                        // The data portion contains an integer array of fds
         },
     };
     struct msghdr msghdr = {
         .msg_iov = iov,
         .msg_iovlen = ARRAY_SIZE(iov),     // (sizeof(x) / sizeof((x)[0]))
         .msg_control = &fd_buf,
-        .msg_controllen = sizeof(fd_buf),
+        .msg_controllen = sizeof(fd_buf),  // CMSG_SPACE(sizeof(int))
     };
 
     fd_buf.fd = ub->fd;
@@ -149,7 +225,12 @@ static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
         msghdr.msg_controllen = 0;
     }
 
+    // TODO: offset should not bigger than (sizeof(ub->hdr) + ub->len)
+    
+    // offset is the position from the beginning of ub->hdr to where the ub begin to send out
     if (offset < sizeof(ub->hdr)) {
+
+        // part of ub->hdr need send out, seperate with ub->data in defferent io buffer
         iov[0].iov_base = ((char *) &ub->hdr) + offset;
         iov[0].iov_len = sizeof(ub->hdr) - offset;
         iov[1].iov_base = (char *) ub->data;
@@ -157,7 +238,18 @@ static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
 
         return sendmsg(fd, &msghdr, 0);
     } else {
-        offset -= sizeof(ub->hdr);
+
+        // only part of or whole ub->data need send out
+        offset -= sizeof(ub->hdr); // 
+
+        // #include <unistd.h>
+        // ssize_t write(int fd, const void *buf, size_t count);
+        // Desc: writes up to count bytes from the buffer starting at buf to fd referred file.
+        //     The number of actually written bytes may be less than count.
+        //     For a file to which lseek() may be applied, writing takes place at the file offset,
+        //     and the file offset is incremented by the number of bytes actually written.
+        //     write() to a fd open()ed with O_APPEND flag is an atomic step: set offset to the end, then write.
+        //     so lseek() before write() to an O_APPEND fd is invalid, should lseek() before read() otherwise read nothing
         return write(fd, ((char *) ub->data) + offset, ub->len - offset);
     }
 }

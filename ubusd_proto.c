@@ -63,8 +63,8 @@ static void ubus_msg_init(struct ubus_msg_buf *ub, uint8_t type, uint16_t seq, u
 static struct ubus_msg_buf *ubus_msg_from_blob(bool shared)
 {
     // boolean type variable shared represents whether ubus_msg_buf and blob_buf share the same memory
-    // true  - returned ubus_msg_buf type stucture fetches the message from b directly.
-    // false - returned ubus_msg_buf type stucture creates a message copy
+    //      true  - returned ubus_msg_buf type stucture fetches the message from b directly.
+    //      false - returned ubus_msg_buf type stucture creates a message copy
     return ubus_msg_new(b.head, blob_raw_len(b.head), shared);
 }
 
