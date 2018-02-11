@@ -256,10 +256,15 @@ static int ubus_msg_writev(int fd, struct ubus_msg_buf *ub, int offset)
 
 static void ubus_msg_enqueue(struct ubus_client *cl, struct ubus_msg_buf *ub)
 {
+    // cl->txq_tail should indicate the next position of queue length
     if (cl->tx_queue[cl->txq_tail])
         return;
 
+    // everytime a message enqueue, increase the ref_count
+    // if the message do not allow refer, return a copy
     cl->tx_queue[cl->txq_tail] = ubus_msg_ref(ub);
+
+    // if queue tail has reached the end of array, then loop back to start
     cl->txq_tail = (cl->txq_tail + 1) % ARRAY_SIZE(cl->tx_queue);
 }
 
@@ -272,11 +277,15 @@ void ubus_msg_send(struct ubus_client *cl, struct ubus_msg_buf *ub, bool free)
         // no message waiting in transmition queue, send directly
         written = ubus_msg_writev(cl->sock.fd, ub, 0);
         if (written >= ub->len + sizeof(ub->hdr))
+            // bytes actually sent out bigger means success
             goto out;
 
+        // sent out failed or interrupted, add to tx queue
+        // so we can send rest again when socket ready
         if (written < 0)
             written = 0;
 
+        // record bytes had been sent actually
         cl->txq_ofs = written;
 
         /* get an event once we can write to the socket again */
@@ -288,6 +297,7 @@ void ubus_msg_send(struct ubus_client *cl, struct ubus_msg_buf *ub, bool free)
 
 out:
     if (free)
+        // free is ture means clear the buffer when send out successful
         ubus_msg_free(ub);
 }
 
@@ -480,6 +490,7 @@ static bool get_next_connection(int fd)
         }
     }
 
+    // create a client instance
     cl = ubusd_proto_new_client(client_fd, client_cb);
     if (cl)
         uloop_fd_add(&cl->sock, ULOOP_READ | ULOOP_EDGE_TRIGGER);

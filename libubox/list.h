@@ -37,6 +37,9 @@
 #ifndef container_of
 // a member type pointer __mptr pointed to an actual address
 // (actual member addr - actual type struct addr) == offsetof(type, member)
+// 以0为起始地址的结构体，其起始位置到成员变量的偏移量与
+// 以某个实际同类型结构体起始位置到相同成员变量的偏移量相同
+// 那么用该成员变量的实际地址减去到0的偏移量，即为该结构体的实际位置
 // return the actual address of a variable containing of ptr
 #define container_of(ptr, type, member)                    \
     ({                                \

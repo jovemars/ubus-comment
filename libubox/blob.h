@@ -50,7 +50,9 @@ enum {
 
 struct blob_attr {
     uint32_t id_len;
-    char data[];
+    char data[];     // or char data[0];
+                     // 结构体中动态数组对sizeof无贡献
+                     // 动态数组使用时放在结构体末尾
 } __packed;  
 
 struct blob_attr_info {

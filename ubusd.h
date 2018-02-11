@@ -36,21 +36,25 @@ struct ubus_msg_buf {
 };
 
 struct ubus_client {
-    struct ubus_id id;    // unique identitier allocated by ubusd
+    struct ubus_id id;    // identitier allocated by ubusd
     struct uloop_fd sock; // client socket created by accept()
 
-    struct list_head objects;
+    struct list_head objects; // haven't met yet
 
-    struct ubus_msg_buf *tx_queue[UBUSD_CLIENT_BACKLOG];
-    unsigned int txq_cur, txq_tail, txq_ofs;
+    /* parameters for transmition message */
+    struct ubus_msg_buf *tx_queue[UBUSD_CLIENT_BACKLOG]; // transmition queue
+    unsigned int txq_cur,  // current position in the queue
+                 txq_tail, // queue tail
+                 txq_ofs;  // the beginning position of the message
 
-    struct ubus_msg_buf *pending_msg;
-    int pending_msg_offset;
-    int pending_msg_fd;
+    /* parameters for received message */
+    struct ubus_msg_buf *pending_msg; // message received
+    int pending_msg_offset;           // 
+    int pending_msg_fd;               // remote socket
     struct {
-        struct ubus_msghdr hdr;
-        struct blob_attr data;
-    } hdrbuf;
+        struct ubus_msghdr hdr;       // received message header
+        struct blob_attr data;        // received message data
+    } hdrbuf;                         // received message
 };
 
 struct ubus_path {

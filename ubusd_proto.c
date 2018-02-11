@@ -495,15 +495,19 @@ struct ubus_client *ubusd_proto_new_client(int fd, uloop_fd_handler cb)
     if (!ubus_alloc_id(&clients, &cl->id, 0))
         goto free;
 
-    // 
+    // send initial message to client
     if (!ubusd_send_hello(cl))
+        // failed only because of calloc() for ubus_msg_buf failed.
         goto delete;
 
     return cl;
 
 delete:
+    // if initial message sent out failed, delete the client from avl tress
+    // expect to its connection again
     ubus_free_id(&clients, &cl->id);
 free:
+    // client instance has no id allocated
     free(cl);
     return NULL;
 }

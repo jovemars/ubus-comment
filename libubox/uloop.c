@@ -524,11 +524,13 @@ int uloop_fd_add(struct uloop_fd *sock, unsigned int flags)
     if (!sock->registered && !(flags & ULOOP_BLOCKING)) {
         fl = fcntl(sock->fd, F_GETFL, 0);
         fl |= O_NONBLOCK;
-        fcntl(sock->fd, F_SETFL, fl);
+        fcntl(sock->fd, F_SETFL, fl); // set the sock as noblock mode
     }
 
     // TODO: if flags & ULOOP_BLOCKING != 0, make sure epoll_wait() can not block in edge triggered mode
 
+    // call epoll_ctl() with EPOLL_CTL_ADD or EPOLL_CTL_MOD to add or modify the fd refered to
+    // by sock on epoll instance.
     ret = register_poll(sock, flags);
     if (ret < 0)
         goto out;
