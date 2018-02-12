@@ -747,8 +747,16 @@ avl_post_delete(struct avl_tree *tree, struct avl_node *node)
 {
     struct avl_node *parent;
 
+    /**
+     * node is root
+     */
+
     if ((parent = node->parent) == NULL)
         return;
+
+    /**
+     * node is left child
+     */
 
     if (node == parent->left) {
         // delete the child of node may cause the parent right heavy
@@ -772,7 +780,7 @@ avl_post_delete(struct avl_tree *tree, struct avl_node *node)
             return;
 
         /**
-         * parent is right heavy before which means
+         * parent is right heavy before, which means
          * right subtree of parent is 2 more layers in height now, like:
          *
          *            parent
@@ -806,6 +814,7 @@ avl_post_delete(struct avl_tree *tree, struct avl_node *node)
              *    node    prl   prrl prrr
              *            / \
              *         prll prlr
+             * 旋转后，处于不可完全平衡的状态，保持pr的平衡度不小于-1即可
              */
 
             avl_rotate_left(tree, parent);
@@ -813,10 +822,52 @@ avl_post_delete(struct avl_tree *tree, struct avl_node *node)
         }
 
         if (parent->right->balance == 1) {
+
+            /**
+             * right child of parent is right heavy
+             *
+             * Before:
+             *            parent
+             *            /   \
+             *       node       pr
+             *                /   \
+             *              prl    prr      (both prl and prr are not null)
+             *                     / \
+             *                  prrl prrr   (at least one in (prrl, prrr) are not null) 
+             *
+             * After rotate:
+             *               pr
+             *            /      \
+             *         parent     prr
+             *        /   \       /  \
+             *    node    prl   prrl prrr
+             * pr已经平衡，而旋转之前parent的parent的平衡度未知，需要进一步判断
+             */
+            
             avl_rotate_left(tree, parent);
             avl_post_delete(tree, parent->parent);
             return;
         }
+
+        /**
+         * right child of parent is left heavy
+         *
+         * Before:
+         *            parent
+         *            /   \
+         *       node       pr
+         *                /   \
+         *            prl       prr      (both prl and prr are not null)
+         *            / \
+         *         prll prlr             (at least one in (prll, prlr) is not null)
+         *
+         * After rotate:
+         *               prl
+         *            /      \
+         *         parent     pr
+         *        /   \       /  \
+         *    node    prll   prlr prr
+         */
 
         avl_rotate_right(tree, parent->right);
         avl_rotate_left(tree, parent);
@@ -824,26 +875,57 @@ avl_post_delete(struct avl_tree *tree, struct avl_node *node)
         return;
     }
 
+    /**
+     * node is right child
+     */
+
     parent->balance--;
+
+    /**
+     * parent is right heavy before
+     */
 
     if (parent->balance == 0) {
         avl_post_delete(tree, parent);
         return;
     }
 
+    /**
+     * parent is balanced before
+     */
+
     if (parent->balance == -1)
         return;
 
+    /**
+     * parent is left heavy before
+     */
+
     if (parent->left->balance == 0) {
+
+        /**
+         * parent left child is balanced before
+         */
+
         avl_rotate_right(tree, parent);
         return;
     }
 
     if (parent->left->balance == -1) {
+
+        /**
+         * parent left child is left heavy before
+         */
+
         avl_rotate_right(tree, parent);
         avl_post_delete(tree, parent->parent);
         return;
     }
+
+    /**
+     * parent is left heavy before and 
+     * parent left child is right heavy before
+     */
 
     avl_rotate_left(tree, parent->left);
     avl_rotate_right(tree, parent);
@@ -885,8 +967,10 @@ avl_delete_worker(struct avl_tree *tree, struct avl_node *node)
             return;
         }
 
+        /**
+         * node is the left child of parent
+         */
         if (parent->left == node) {
-            // node is the left child of parent
             // delete node will cause parent right heavy
             parent->left = NULL;
             parent->balance++;
